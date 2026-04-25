@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  --color-primary-50: oklch(0.96 0.01 220);
+  --color-primary-100: oklch(0.92 0.03 220);
+  --color-primary-500: oklch(0.6 0.16 250);
+  --color-primary-600: oklch(0.5 0.18 250);
+  --color-primary-700: oklch(0.4 0.18 250);
+
+  --color-accent-500: oklch(0.7 0.2 330);
+  
+  --color-dark-900: oklch(0.2 0.02 250);
+  --color-dark-950: oklch(0.14 0.02 250);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
+  }
+  
+  .dark body {
+    @apply bg-dark-950 text-slate-100;
+  }
+}
+
+/* Custom Component Classes using standard CSS + Tailwind Variables */
+.glass {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .glass {
+  background-color: rgba(30, 41, 59, 0.7); /* Using a slate-800 equivalent for dark glass */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+  composes: glass; /* CSS modules style, but we're in a global file */
+  @apply rounded-2xl p-6 transition-all duration-300;
+}
+/* composes doesn't work in standard CSS. Let's just repeat or use a separate utility */
+
+.glass-card {
+  @apply rounded-2xl p-6 transition-all duration-300;
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass-card {
+  background-color: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card:hover {
+  @apply scale-[1.02] shadow-2xl;
+}
+
+.btn-primary {
+  @apply px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium transition-all;
+}
+
+.btn-primary:hover {
+  @apply bg-primary-500 shadow-lg;
+}
+
+.btn-primary:active {
+  @apply scale-95;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-white/10;
+}
