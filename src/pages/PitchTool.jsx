@@ -1,134 +1,197 @@
 import React, { useState } from 'react';
-import { Presentation, Save, Share2, Eye, Layout } from 'lucide-react';
+import { 
+  Presentation, 
+  Plus, 
+  Trash2, 
+  Download, 
+  Sparkles, 
+  Layout, 
+  ChevronRight, 
+  ChevronLeft, 
+  Eye 
+} from 'lucide-react';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { jsPDF } from 'jspdf';
 
-const slides = [
-  { id: 'problem', title: 'The Problem', description: 'What pain point are you solving?' },
-  { id: 'solution', title: 'The Solution', description: 'How does your product fix it?' },
-  { id: 'market', title: 'Market Opportunity', description: 'Who is your target audience?' },
-  { id: 'revenue', title: 'Revenue Model', description: 'How will you make money?' },
+const initialSlidesData = [
+  { title: 'The Problem', content: 'What is the pain point you are solving?' },
+  { title: 'Our Solution', content: 'How does your product solve this problem?' },
+  { title: 'Market Size', content: 'How big is the opportunity?' },
+  { title: 'Business Model', content: 'How will you make money?' },
 ];
 
 export default function PitchTool() {
-  const [pitchData, setPitchData] = useState({
-    problem: '',
-    solution: '',
-    market: '',
-    revenue: '',
-    companyName: ''
-  });
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isPreview, setIsPreview] = useState(false);
+  const [slides, setSlides] = useState(initialSlidesData);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-  const handleInputChange = (field, value) => {
-    setPitchData(prev => ({ ...prev, [field]: value }));
+  const updateSlide = (field, value) => {
+    const newSlides = [...slides];
+    newSlides[currentSlideIndex][field] = value;
+    setSlides(newSlides);
   };
 
+  const addSlide = () => {
+    setSlides([...slides, { title: 'New Slide', content: '' }]);
+    setCurrentSlideIndex(slides.length);
+  };
+
+  const removeSlide = (index) => {
+    if (slides.length === 1) return;
+    const newSlides = slides.filter((_, i) => i !== index);
+    setSlides(newSlides);
+    setCurrentSlideIndex(Math.max(0, index - 1));
+  };
+
+  const generateAI = () => {
+    const aiSlides = [
+      { title: 'Vision', content: 'To revolutionize how small businesses manage their daily operations through an integrated AI-powered OS.' },
+      { title: 'The Problem', content: 'Small businesses waste 40% of their time switching between disconnected tools for HR, Finance, and Marketing.' },
+      { title: 'The Solution', content: 'A centralized Business Tool Hub that automates workflows and provides 10+ essential tools in one dashboard.' },
+      { title: 'Market Opportunity', content: 'The global SMB software market is projected to reach $150B by 2028.' },
+    ];
+    setSlides(aiSlides);
+    setCurrentSlideIndex(0);
+  };
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    slides.forEach((slide, index) => {
+      if (index > 0) doc.addPage();
+      
+      // Slide background
+      doc.setFillColor(15, 23, 42); // slate-900
+      doc.rect(0, 0, 210, 297, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(32);
+      doc.setFont('helvetica', 'bold');
+      doc.text(slide.title, 105, 100, { align: 'center' });
+      
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 200);
+      const lines = doc.splitTextToSize(slide.content, 160);
+      doc.text(lines, 105, 130, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.text(`Slide ${index + 1} of ${slides.length}`, 105, 280, { align: 'center' });
+    });
+    doc.save('Pitch_Deck.pdf');
+  };
+
+  const currentSlide = slides[currentSlideIndex];
+
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold dark:text-white flex items-center gap-3">
             <Presentation className="text-orange-500" size={32} />
             Pitch Deck Generator
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">Structure your vision and impress investors.</p>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Structure your business story and export as a professional PDF.</p>
         </div>
-        <Button onClick={() => setIsPreview(!isPreview)} variant={isPreview ? 'secondary' : 'primary'}>
-          {isPreview ? <Layout size={20} /> : <Eye size={20} />}
-          {isPreview ? 'Back to Editor' : 'Live Preview'}
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={generateAI}>
+            <Sparkles size={18} /> Generate AI Content
+          </Button>
+          <Button onClick={downloadPDF}>
+            <Download size={18} /> Export PDF
+          </Button>
+        </div>
       </div>
 
-      {!isPreview ? (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1 space-y-2">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Slides</h3>
-            {slides.map((slide, index) => (
-              <button
-                key={slide.id}
-                onClick={() => setActiveSlide(index)}
-                className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
-                  activeSlide === index 
-                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' 
-                    : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <Card className="lg:col-span-1 p-4 h-[600px] flex flex-col">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h3 className="font-bold dark:text-white">Slides</h3>
+            <button onClick={addSlide} className="p-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors">
+              <Plus size={16} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+            {slides.map((slide, i) => (
+              <div 
+                key={i}
+                onClick={() => setCurrentSlideIndex(i)}
+                className={`group p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                  currentSlideIndex === i 
+                    ? 'border-primary-500 bg-primary-500/5' 
+                    : 'border-transparent bg-slate-100 dark:bg-white/5 dark:text-white hover:border-slate-300 dark:hover:border-white/10'
                 }`}
               >
-                <span className="text-xs font-bold opacity-60 mr-2">0{index + 1}</span>
-                {slide.title}
-              </button>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-400">0{i + 1}</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); removeSlide(i); }}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded-md transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div className="font-bold dark:text-white text-sm mt-1 truncate">{slide.title}</div>
+              </div>
             ))}
           </div>
+        </Card>
 
-          <div className="lg:col-span-3">
-            <Card className="p-8 space-y-8 min-h-[500px] flex flex-col">
-              <div>
-                <h2 className="text-2xl font-bold dark:text-white mb-2">{slides[activeSlide].title}</h2>
-                <p className="text-slate-500">{slides[activeSlide].description}</p>
-              </div>
+        <div className="lg:col-span-3 space-y-6">
+          <Card className="p-8 md:p-12 min-h-[500px] bg-slate-900 border-none shadow-2xl relative overflow-hidden flex flex-col justify-center items-center text-center">
+            <div className="absolute top-0 right-0 p-4 flex gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500/50" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+              <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
+            </div>
+            
+            <input 
+              className="w-full bg-transparent text-4xl md:text-5xl font-black text-white text-center border-none outline-none placeholder:text-white/20 mb-8"
+              value={currentSlide.title}
+              onChange={(e) => updateSlide('title', e.target.value)}
+              placeholder="Slide Title"
+            />
+            
+            <textarea 
+              className="w-full bg-transparent text-xl md:text-2xl text-slate-400 text-center border-none outline-none placeholder:text-white/10 resize-none h-48 leading-relaxed"
+              value={currentSlide.content}
+              onChange={(e) => updateSlide('content', e.target.value)}
+              placeholder="Add your slide content here..."
+            />
 
-              <textarea
-                className="flex-1 w-full p-6 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white text-xl leading-relaxed resize-none"
-                placeholder={`Describe the ${slides[activeSlide].title.toLowerCase()}...`}
-                value={pitchData[slides[activeSlide].id]}
-                onChange={(e) => handleInputChange(slides[activeSlide].id, e.target.value)}
-              />
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center gap-8">
+              <button 
+                disabled={currentSlideIndex === 0}
+                onClick={() => setCurrentSlideIndex(prev => prev - 1)}
+                className="p-2 text-white/50 hover:text-white disabled:opacity-20 transition-colors"
+              >
+                <ChevronLeft size={32} />
+              </button>
+              <span className="text-white/20 font-mono">
+                {currentSlideIndex + 1} / {slides.length}
+              </span>
+              <button 
+                disabled={currentSlideIndex === slides.length - 1}
+                onClick={() => setCurrentSlideIndex(prev => prev + 1)}
+                className="p-2 text-white/50 hover:text-white disabled:opacity-20 transition-colors"
+              >
+                <ChevronRight size={32} />
+              </button>
+            </div>
+          </Card>
 
-              <div className="flex justify-between items-center">
-                <Button 
-                  variant="ghost" 
-                  disabled={activeSlide === 0}
-                  onClick={() => setActiveSlide(s => s - 1)}
-                >
-                  Previous
-                </Button>
-                <Button 
-                  disabled={activeSlide === slides.length - 1}
-                  onClick={() => setActiveSlide(s => s + 1)}
-                >
-                  Next Slide
-                </Button>
-              </div>
+          <div className="flex gap-4">
+            <Card className="flex-1 flex items-center gap-4 py-4">
+              <Eye className="text-primary-600" />
+              <span className="text-sm font-bold dark:text-white">Slide Preview Mode</span>
+            </Card>
+            <Card className="flex-1 flex items-center gap-4 py-4">
+              <Layout className="text-purple-500" />
+              <span className="text-sm font-bold dark:text-white">Theme: Dark Modern</span>
             </Card>
           </div>
         </div>
-      ) : (
-        <div className="space-y-12 pb-20">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-8"
-          >
-            {slides.map((slide, index) => (
-              <Card key={slide.id} className="p-10 flex flex-col justify-center bg-white dark:bg-dark-900 border-none shadow-2xl min-h-[400px] group overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-8 text-8xl font-black text-slate-100 dark:text-white/5 select-none transition-transform group-hover:scale-110">
-                  0{index + 1}
-                </div>
-                <div className="relative z-10">
-                  <span className="inline-block px-3 py-1 rounded-full bg-orange-500/10 text-orange-500 text-xs font-bold uppercase tracking-widest mb-4">
-                    {slide.title}
-                  </span>
-                  <h3 className="text-3xl font-bold dark:text-white mb-6 leading-tight">
-                    {pitchData[slide.id] || 'Content not added yet...'}
-                  </h3>
-                </div>
-              </Card>
-            ))}
-          </motion.div>
-          
-          <div className="flex justify-center gap-4">
-            <Button className="rounded-full px-8 py-3 bg-slate-900 hover:bg-slate-800">
-              <Save size={20} /> Save Progress
-            </Button>
-            <Button className="rounded-full px-8 py-3 bg-orange-600 hover:bg-orange-500">
-              <Share2 size={20} /> Export Presentation
-            </Button>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

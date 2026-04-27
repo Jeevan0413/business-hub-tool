@@ -1,109 +1,226 @@
 import React, { useState } from 'react';
-import { Rocket, Sparkles, Copy, Check } from 'lucide-react';
+import { 
+  Rocket, 
+  Search, 
+  RefreshCcw, 
+  Globe, 
+  CheckCircle2, 
+  XCircle, 
+  Palette, 
+  Layout, 
+  Copy, 
+  Check, 
+  ExternalLink 
+} from 'lucide-react';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 
-const prefixes = ['Nex', 'Cloud', 'Hyper', 'Swift', 'Meta', 'Zen', 'Aero', 'Eco', 'Vibe', 'Lumina'];
-const suffixes = ['ify', 'ly', 'io', 'flow', 'base', 'hub', 'gen', 'scale', 'sync', 'pulse'];
+const nameSuggestionsData = {
+  tech: ['CodeNexus', 'ByteBound', 'DevFlow', 'SyncWave', 'DataPulse', 'CloudCraft', 'LogicLoom', 'BitBridge'],
+  creative: ['VividMind', 'ArtisanHub', 'SparkStudio', 'DreamWeaver', 'CanvasCloud', 'InspireInk', 'MuseMatic', 'PixelPerfect'],
+  business: ['EliteEdge', 'PrimePath', 'GlobalGrowth', 'MarketMaster', 'DirectDrive', 'StrategyStack', 'ProfitPulse', 'AscentApps'],
+  modern: ['Koda', 'Zentry', 'Volo', 'Lumina', 'Nox', 'Arca', 'Solis', 'Mura']
+};
 
 export default function StartupTool() {
   const [keyword, setKeyword] = useState('');
-  const [names, setNames] = useState([]);
-  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [category, setCategory] = useState('tech');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedName, setSelectedName] = useState('');
+  const [domainStatus, setDomainStatus] = useState(null);
 
   const generateNames = () => {
-    if (!keyword) return;
-    
-    const newNames = [];
-    const base = keyword.trim().charAt(0).toUpperCase() + keyword.trim().slice(1).toLowerCase();
-
-    // Strategy 1: Prefix + Keyword
-    for (let i = 0; i < 3; i++) {
-      newNames.push(prefixes[Math.floor(Math.random() * prefixes.length)] + base);
-    }
-
-    // Strategy 2: Keyword + Suffix
-    for (let i = 0; i < 3; i++) {
-      newNames.push(base + suffixes[Math.floor(Math.random() * suffixes.length)]);
-    }
-
-    // Strategy 3: Just the keyword styled
-    newNames.push(base + ' Labs');
-    newNames.push(base + ' AI');
-    newNames.push('The ' + base + ' Co');
-
-    setNames([...new Set(newNames)].slice(0, 10));
+    setIsGenerating(true);
+    setTimeout(() => {
+      const baseNames = nameSuggestionsData[category] || nameSuggestionsData.tech;
+      const filtered = baseNames.sort(() => 0.5 - Math.random()).slice(0, 8);
+      setSuggestions(filtered.map(name => keyword ? `${keyword}${name}` : name));
+      setIsGenerating(false);
+    }, 1200);
   };
 
-  const copyToClipboard = (text, index) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const checkDomain = (name) => {
+    setSelectedName(name);
+    setDomainStatus({ loading: true });
+    setTimeout(() => {
+      setDomainStatus({ tld: '.com', available: Math.random() > 0.3, loading: false });
+    }, 800);
   };
+
+  const logoStyles = [
+    { name: 'Minimal', font: 'font-sans', bg: 'bg-slate-900', text: 'text-white' },
+    { name: 'Playful', font: 'font-serif', bg: 'bg-primary-600', text: 'text-white' },
+    { name: 'Bold', font: 'font-black', bg: 'bg-yellow-400', text: 'text-black' },
+    { name: 'Gradient', font: 'font-bold', bg: 'bg-gradient-to-br from-primary-600 to-purple-600', text: 'text-white' },
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10">
-      <div className="text-center space-y-4">
-        <div className="inline-flex p-4 rounded-3xl bg-blue-500/10 text-blue-500 mb-2">
-          <Rocket size={48} />
-        </div>
-        <h1 className="text-4xl font-bold dark:text-white">Business Name Generator</h1>
-        <p className="text-slate-600 dark:text-slate-400 text-lg max-w-xl mx-auto">
-          Enter a keyword and our tool will brainstorm 10 creative names for your next big idea.
-        </p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold dark:text-white flex items-center gap-3">
+          <Rocket className="text-blue-500" size={32} />
+          Startup Tool
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-2">Find the perfect name and identity for your next venture.</p>
       </div>
 
-      <Card className="p-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <Input 
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="e.g. AI, Green, Finance, Tech..."
-              className="text-lg py-4 px-6 rounded-2xl"
-              onKeyPress={(e) => e.key === 'Enter' && generateNames()}
-            />
-          </div>
-          <Button 
-            onClick={generateNames} 
-            className="rounded-2xl px-10 py-4 text-lg"
-            disabled={!keyword}
-          >
-            <Sparkles size={20} /> Generate
-          </Button>
-        </div>
-      </Card>
-
-      {names.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {names.map((name, index) => (
-            <motion.div
-              key={name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="flex items-center justify-between p-5 group">
-                <span className="text-xl font-semibold dark:text-white">{name}</span>
-                <button 
-                  onClick={() => copyToClipboard(name, index)}
-                  className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-primary-500 transition-all"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <Card className="p-8">
+            <h3 className="text-xl font-bold mb-6 dark:text-white">AI Name Generator</h3>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Input 
+                  label="Keyword (Optional)" 
+                  placeholder="e.g. cloud, smart, fast" 
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Industry Category</label>
+                <select 
+                  className="w-full h-11 bg-slate-100 dark:bg-white/5 border-none rounded-xl dark:text-white px-4 outline-none focus:ring-2 focus:ring-primary-500/50"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                 >
-                  {copiedIndex === index ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
-                </button>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      )}
+                  <option value="tech">Technology</option>
+                  <option value="creative">Creative / Arts</option>
+                  <option value="business">Business / Finance</option>
+                  <option value="modern">Minimalist / Modern</option>
+                </select>
+              </div>
+              <div className="md:pt-7">
+                <Button onClick={generateNames} disabled={isGenerating} className="h-11 px-8">
+                  {isGenerating ? <RefreshCcw className="animate-spin" /> : 'Generate'}
+                </Button>
+              </div>
+            </div>
 
-      {names.length === 0 && keyword && (
-        <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
-          <p className="text-slate-400">Click generate to see magic happen ✨</p>
+            {suggestions.length > 0 && (
+              <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+                {suggestions.map((name, i) => (
+                  <button
+                    key={i}
+                    onClick={() => checkDomain(name)}
+                    className={`p-4 rounded-2xl border-2 transition-all text-center font-bold ${
+                      selectedName === name 
+                        ? 'border-primary-500 bg-primary-500/10 text-primary-600' 
+                        : 'border-transparent bg-slate-100 dark:bg-white/5 dark:text-white hover:border-slate-300 dark:hover:border-white/20'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {selectedName && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <Card>
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 dark:text-white">
+                  <Globe size={20} className="text-blue-500" />
+                  Domain Availability
+                </h3>
+                {domainStatus?.loading ? (
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <RefreshCcw size={16} className="animate-spin" /> Checking availability...
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {[
+                      { tld: '.com', available: domainStatus?.available },
+                      { tld: '.io', available: Math.random() > 0.5 },
+                      { tld: '.ai', available: Math.random() > 0.7 },
+                      { tld: '.in', available: true },
+                    ].map((domain, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-white/5">
+                        <span className="font-mono font-bold dark:text-white">{selectedName.toLowerCase()}{domain.tld}</span>
+                        <div className="flex items-center gap-3">
+                          {domain.available ? (
+                            <span className="flex items-center gap-1 text-emerald-500 text-sm font-bold">
+                              <CheckCircle2 size={16} /> Available
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-red-500 text-sm font-bold">
+                              <XCircle size={16} /> Taken
+                            </span>
+                          )}
+                          <button className="text-slate-400 hover:text-primary-600"><ExternalLink size={16} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card>
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 dark:text-white">
+                  <Palette size={20} className="text-purple-500" />
+                  Logo Preview
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {logoStyles.map((style, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className={`${style.bg} ${style.text} aspect-video rounded-xl flex items-center justify-center p-4 text-center overflow-hidden shadow-lg`}>
+                        <span className={`${style.font} text-xl truncate`}>{selectedName}</span>
+                      </div>
+                      <p className="text-xs text-center text-slate-500 font-medium">{style.name}</p>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="secondary" className="w-full mt-6 text-sm">
+                  <Layout size={16} /> Customize Identity
+                </Button>
+              </Card>
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="space-y-6">
+          <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none">
+            <h3 className="text-xl font-bold mb-4">Launch Strategy</h3>
+            <p className="text-blue-100 mb-6 text-sm leading-relaxed">
+              Naming is just the first step. Use our Planning and Pitch tools to build a solid foundation for your new startup.
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-sm font-medium p-3 bg-white/10 rounded-xl">
+                <CheckCircle2 size={18} className="text-blue-300" />
+                Domain Availability Check
+              </div>
+              <div className="flex items-center gap-3 text-sm font-medium p-3 bg-white/10 rounded-xl">
+                <CheckCircle2 size={18} className="text-blue-300" />
+                Social Media Handle Sync
+              </div>
+              <div className="flex items-center gap-3 text-sm font-medium p-3 bg-white/10 rounded-xl">
+                <CheckCircle2 size={18} className="text-blue-300" />
+                Trademark Basic Search
+              </div>
+            </div>
+          </Card>
+          
+          <Card>
+            <h3 className="text-lg font-bold mb-4 dark:text-white">Pro Tips</h3>
+            <ul className="space-y-4 text-sm text-slate-600 dark:text-slate-400">
+              <li className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                Keep it short and memorable (2-3 syllables).
+              </li>
+              <li className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                Avoid numbers and hyphens if possible.
+              </li>
+              <li className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                Check for linguistic issues in target markets.
+              </li>
+            </ul>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
-import { motion } from 'framer-motion';

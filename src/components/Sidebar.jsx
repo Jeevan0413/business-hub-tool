@@ -9,14 +9,22 @@ import {
   Moon,
   Sun,
   Menu,
-  X
+  X,
+  Users,
+  Files,
+  Mail,
+  LogOut
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
 const navItems = [
   { path: '/', name: 'Dashboard', icon: LayoutDashboard },
+  { path: '/employees', name: 'Employees', icon: Users },
   { path: '/finance', name: 'Finance', icon: ReceiptText },
+  { path: '/documents', name: 'Documents', icon: Files },
+  { path: '/communication', name: 'Communication', icon: Mail },
   { path: '/startup', name: 'Startup', icon: Rocket },
   { path: '/planning', name: 'Planning', icon: Target },
   { path: '/pitch', name: 'Pitch Deck', icon: Presentation },
@@ -24,6 +32,7 @@ const navItems = [
 
 export default function Sidebar() {
   const { isDarkMode, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -54,10 +63,13 @@ export default function Sidebar() {
             <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
               <Rocket className="text-white" size={24} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight dark:text-white">Business Hub</h1>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight dark:text-white leading-tight">Business Hub</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{user?.workspace || 'OS System'}</p>
+            </div>
           </div>
 
-          <nav className="flex-1 space-y-2">
+          <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {navItems.map((item) => (
               <NavLink
                 key={item.path}
@@ -76,13 +88,23 @@ export default function Sidebar() {
             ))}
           </nav>
 
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all mt-auto"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            <span className="font-medium">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-          </button>
+          <div className="mt-auto pt-6 space-y-2">
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              <span className="font-medium">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+            </button>
+            
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all"
+            >
+              <LogOut size={20} />
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
         </div>
       </aside>
     </>
