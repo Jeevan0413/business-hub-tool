@@ -15,6 +15,7 @@ import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { jsPDF } from 'jspdf';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const initialEmployees = [
   { id: 1, name: 'Rahul Sharma', email: 'rahul@company.com', role: 'Software Engineer', status: 'Active', joined: '2025-01-15' },
@@ -27,7 +28,17 @@ export default function EmployeeManagement() {
   const [employees, setEmployees] = useState(initialEmployees);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newEmployee, setNewEmployee] = useState({ name: '', email: '', role: '', joined: new Date().toISOString().split('T')[0] });
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [newEmployee, setNewEmployee] = useState({ 
+    name: '', 
+    email: '', 
+    role: '', 
+    phone: '',
+    department: 'Engineering',
+    joined: new Date().toISOString().split('T')[0],
+    type: 'Full-time',
+    location: 'Remote'
+  });
 
   const filteredEmployees = employees.filter(emp => 
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -38,8 +49,18 @@ export default function EmployeeManagement() {
     e.preventDefault();
     const id = employees.length + 1;
     setEmployees([...employees, { ...newEmployee, id, status: 'Onboarding' }]);
-    setNewEmployee({ name: '', email: '', role: '', joined: new Date().toISOString().split('T')[0] });
+    setNewEmployee({ 
+      name: '', 
+      email: '', 
+      role: '', 
+      phone: '',
+      department: 'Engineering',
+      joined: new Date().toISOString().split('T')[0],
+      type: 'Full-time',
+      location: 'Remote'
+    });
     setShowAddModal(false);
+    setOnboardingStep(1);
   };
 
   const generateCertificate = (employee) => {
@@ -171,62 +192,140 @@ export default function EmployeeManagement() {
         </div>
       </Card>
 
-      {/* Add Employee Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden"
-          >
-            <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
-              <h3 className="text-xl font-bold dark:text-white">Add New Employee</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-white">
-                <X size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
-              <Input 
-                label="Full Name" 
-                placeholder="e.g. Rahul Sharma" 
-                value={newEmployee.name}
-                onChange={(e) => setNewEmployee({...newEmployee, name: e.target.value})}
-                required
-              />
-              <Input 
-                label="Email" 
-                type="email" 
-                placeholder="rahul@company.com" 
-                value={newEmployee.email}
-                onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
-                required
-              />
-              <Input 
-                label="Role" 
-                placeholder="e.g. Software Engineer" 
-                value={newEmployee.role}
-                onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value})}
-                required
-              />
-              <Input 
-                label="Joined Date" 
-                type="date" 
-                value={newEmployee.joined}
-                onChange={(e) => setNewEmployee({...newEmployee, joined: e.target.value})}
-                required
-              />
-              <div className="pt-4 flex gap-3">
-                <Button variant="secondary" type="button" className="flex-1" onClick={() => setShowAddModal(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1">
-                  Add Employee
-                </Button>
+      {/* Add Employee Onboarding Modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                <div>
+                  <h3 className="text-xl font-bold dark:text-white">Employee Onboarding</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Step {onboardingStep} of 2</p>
+                </div>
+                <button onClick={() => setShowAddModal(false)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 transition-colors">
+                  <X size={20} />
+                </button>
               </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+
+              <div className="p-6">
+                <div className="flex gap-2 mb-8">
+                  <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${onboardingStep >= 1 ? 'bg-primary-500' : 'bg-slate-200 dark:bg-white/10'}`} />
+                  <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${onboardingStep >= 2 ? 'bg-primary-500' : 'bg-slate-200 dark:bg-white/10'}`} />
+                </div>
+
+                <form onSubmit={onboardingStep === 2 ? handleAddEmployee : (e) => { e.preventDefault(); setOnboardingStep(2); }} className="space-y-6">
+                  {onboardingStep === 1 ? (
+                    <motion.div 
+                      key="step1"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-4"
+                    >
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Personal Information</h4>
+                      <Input 
+                        label="Full Name" 
+                        placeholder="e.g. Rahul Sharma" 
+                        value={newEmployee.name}
+                        onChange={(e) => setNewEmployee({...newEmployee, name: e.target.value})}
+                        required
+                      />
+                      <Input 
+                        label="Email Address" 
+                        type="email" 
+                        placeholder="rahul@company.com" 
+                        value={newEmployee.email}
+                        onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
+                        required
+                      />
+                      <Input 
+                        label="Phone Number" 
+                        placeholder="+91 98765 43210" 
+                        value={newEmployee.phone}
+                        onChange={(e) => setNewEmployee({...newEmployee, phone: e.target.value})}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="step2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-4"
+                    >
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Professional Details</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input 
+                          label="Role" 
+                          placeholder="e.g. Software Engineer" 
+                          value={newEmployee.role}
+                          onChange={(e) => setNewEmployee({...newEmployee, role: e.target.value})}
+                          required
+                        />
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Department</label>
+                          <select 
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all dark:text-white"
+                            value={newEmployee.department}
+                            onChange={(e) => setNewEmployee({...newEmployee, department: e.target.value})}
+                          >
+                            <option value="Engineering">Engineering</option>
+                            <option value="Design">Design</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Sales">Sales</option>
+                            <option value="HR">HR</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input 
+                          label="Joined Date" 
+                          type="date" 
+                          value={newEmployee.joined}
+                          onChange={(e) => setNewEmployee({...newEmployee, joined: e.target.value})}
+                          required
+                        />
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Employment Type</label>
+                          <select 
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all dark:text-white"
+                            value={newEmployee.type}
+                            onChange={(e) => setNewEmployee({...newEmployee, type: e.target.value})}
+                          >
+                            <option value="Full-time">Full-time</option>
+                            <option value="Part-time">Part-time</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Internship">Internship</option>
+                          </select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="pt-6 flex gap-3 border-t border-slate-200 dark:border-white/5">
+                    {onboardingStep === 2 && (
+                      <Button variant="secondary" type="button" className="flex-1" onClick={() => setOnboardingStep(1)}>
+                        Back
+                      </Button>
+                    )}
+                    <Button variant="secondary" type="button" className={onboardingStep === 1 ? 'flex-1' : ''} onClick={() => setShowAddModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="flex-1">
+                      {onboardingStep === 1 ? 'Continue' : 'Complete Onboarding'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
