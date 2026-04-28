@@ -19,6 +19,25 @@ export default function DocumentAutomation() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, uploaded, processing, completed
 
+  const downloadTemplate = () => {
+    const headers = ['name', 'email', 'role', 'date'];
+    const csvContent = [
+      headers.join(','),
+      'John Doe,john@ex.com,Developer,2025-05-01',
+      'Jane Smith,jane@ex.com,Designer,2025-05-15'
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'document_automation_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -195,7 +214,7 @@ export default function DocumentAutomation() {
               John Doe,john@ex.com,Dev,2025-01-01<br/>
               Jane Smith,jane@ex.com,Des,2025-01-10
             </div>
-            <Button variant="secondary" className="w-full mt-6 text-sm">
+            <Button variant="secondary" className="w-full mt-6 text-sm" onClick={downloadTemplate}>
               <Download size={16} /> Download Template
             </Button>
           </Card>
