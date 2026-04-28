@@ -63,6 +63,25 @@ export default function EmployeeManagement() {
     setOnboardingStep(1);
   };
 
+  const downloadTemplate = () => {
+    const headers = ['Full Name', 'Email', 'Phone', 'Role', 'Department', 'Joined Date', 'Employment Type'];
+    const csvContent = [
+      headers.join(','),
+      'John Doe,john@example.com,+91 9876543210,Software Engineer,Engineering,2025-05-01,Full-time',
+      'Jane Smith,jane@example.com,+91 9876543211,Product Designer,Design,2025-05-15,Part-time'
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'employee_onboarding_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const generateCertificate = (employee) => {
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -106,9 +125,14 @@ export default function EmployeeManagement() {
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">Manage your team and generate onboarding documents.</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
-          <UserPlus size={20} /> Add Employee
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={downloadTemplate}>
+            <Download size={20} /> Download Template
+          </Button>
+          <Button onClick={() => setShowAddModal(true)}>
+            <UserPlus size={20} /> Add Employee
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden">
