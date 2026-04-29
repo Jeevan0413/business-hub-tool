@@ -162,15 +162,20 @@ export default function Dashboard() {
                   tick={{ fill: chartColors.text, fontSize: 12 }}
                 />
                 <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: chartColors.tooltipBg, 
-                    borderRadius: '12px', 
-                    border: `1px solid ${chartColors.tooltipBorder}`, 
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                    backdropFilter: 'blur(8px)',
-                    color: isDarkMode ? '#f1f5f9' : '#1e293b'
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="glass p-3 rounded-2xl border border-white/20 shadow-2xl backdrop-blur-xl">
+                          <p className="text-xs font-bold text-slate-500 uppercase mb-1">{label}</p>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-primary-500" />
+                            <p className="text-lg font-black dark:text-white">${payload[0].value.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
-                  itemStyle={{ color: isDarkMode ? '#f1f5f9' : '#1e293b' }}
                 />
 
                 <Area 

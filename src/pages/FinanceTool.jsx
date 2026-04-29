@@ -27,7 +27,9 @@ import {
   ResponsiveContainer,
   Cell,
   PieChart,
-  Pie
+  Pie,
+  AreaChart,
+  Area
 } from 'recharts';
 
 const COLORS = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b'];
@@ -157,6 +159,26 @@ export default function FinanceTool() {
     doc.save(`invoice_${formData.invoiceNumber}.pdf`);
   };
 
+  const downloadTemplate = () => {
+    const headers = ['Description', 'Quantity', 'Price'];
+    const csvContent = [
+      headers.join(','),
+      'Website Design,1,2500',
+      'Hosting Service,12,20',
+      'Technical Support,5,50'
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'invoice_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleAddExpense = (e) => {
     e.preventDefault();
     setExpenses([...expenses, { ...newExpense, id: Date.now() }]);
@@ -182,6 +204,11 @@ export default function FinanceTool() {
             Finance & Invoicing
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">Manage invoices, expenses, and track your business health.</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={downloadTemplate}>
+            <Download size={20} /> Download Template
+          </Button>
         </div>
       </div>
 
@@ -446,14 +473,17 @@ export default function FinanceTool() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: chartColors.tooltipBg, 
-                      borderRadius: '12px', 
-                      border: `1px solid ${chartColors.tooltipBorder}`, 
-                      backdropFilter: 'blur(8px)',
-                      color: isDarkMode ? '#f1f5f9' : '#1e293b'
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="glass p-3 rounded-xl border border-white/20 shadow-2xl backdrop-blur-md">
+                            <p className="font-bold text-slate-800 dark:text-white">{payload[0].name}</p>
+                            <p className="text-primary-600 font-black">${payload[0].value.toLocaleString()}</p>
+                          </div>
+                        );
+                      }
+                      return null;
                     }}
-                    itemStyle={{ color: isDarkMode ? '#f1f5f9' : '#1e293b' }}
                   />
                 </PieChart>
 

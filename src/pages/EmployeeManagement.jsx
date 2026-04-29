@@ -16,6 +16,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
+import emailjs from '@emailjs/browser';
 
 const initialEmployees = [
   { id: 1, name: 'Rahul Sharma', email: 'rahul@company.com', role: 'Software Engineer', status: 'Active', joined: '2025-01-15' },
@@ -39,16 +40,59 @@ export default function EmployeeManagement() {
     type: 'Full-time',
     location: 'Remote'
   });
+  const [isEmailSending, setIsEmailSending] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const filteredEmployees = employees.filter(emp => 
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     emp.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddEmployee = (e) => {
+  const sendOnboardingEmail = async (employee) => {
+    setIsEmailSending(true);
+    
+    try {
+      // NOTE: To make this work, replace the placeholders with your actual EmailJS keys
+      // Get them at: https://dashboard.emailjs.com/
+      const SERVICE_ID = 'YOUR_SERVICE_ID'; // e.g. 'service_xxxx'
+      const TEMPLATE_ID = 'YOUR_TEMPLATE_ID'; // e.g. 'template_xxxx'
+      const PUBLIC_KEY = 'YOUR_PUBLIC_KEY'; // e.g. 'xxxx-xxxx-xxxx'
+
+      const templateParams = {
+        employee_name: employee.name,
+        employee_role: employee.role,
+        employee_email: employee.email,
+        joined_date: employee.joined,
+        to_email: employee.email,
+      };
+
+      await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
+      
+      console.log(`Onboarding email sent successfully to: ${employee.email}`);
+      setToastMessage(`Onboarding email sent successfully to ${employee.email}`);
+      setShowToast(true);
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      setToastMessage('Failed to send onboarding email. Please check your configuration.');
+      setShowToast(true);
+    } finally {
+      setIsEmailSending(false);
+      setTimeout(() => setShowToast(false), 5000);
+    }
+  };
+
+  const handleAddEmployee = async (e) => {
     e.preventDefault();
     const id = employees.length + 1;
-    setEmployees([...employees, { ...newEmployee, id, status: 'Onboarding' }]);
+    const addedEmployee = { ...newEmployee, id, status: 'Onboarding' };
+    
+    // Simulate sending email first or after adding? 
+    // Usually immediate submission means we start the process.
+    setEmployees([...employees, addedEmployee]);
+    
+    await sendOnboardingEmail(addedEmployee);
+
     setNewEmployee({ 
       name: '', 
       email: '', 
@@ -243,6 +287,13 @@ export default function EmployeeManagement() {
                 </div>
 
                 <form onSubmit={onboardingStep === 2 ? handleAddEmployee : (e) => { e.preventDefault(); setOnboardingStep(2); }} className="space-y-6">
+                  {isEmailSending && (
+                    <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-3xl">
+                      <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                      <p className="font-bold dark:text-white">Sending onboarding email...</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Please wait while we set everything up.</p>
+                    </div>
+                  )}
                   {onboardingStep === 1 ? (
                     <motion.div 
                       key="step1"
@@ -340,14 +391,32 @@ export default function EmployeeManagement() {
                     <Button variant="secondary" type="button" className={onboardingStep === 1 ? 'flex-1' : ''} onClick={() => setShowAddModal(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" className="flex-1">
-                      {onboardingStep === 1 ? 'Continue' : 'Complete Onboarding'}
+                    <Button type="submit" className="flex-1" disabled={isEmailSending}>
+                      {onboardingStep === 1 ? 'Continue' : isEmailSending ? 'Sending...' : 'Complete Onboarding'}
                     </Button>
                   </div>
                 </form>
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Toast */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 50, x: '-50%' }}
+            className="fixed bottom-8 left-1/2 z-[100] px-6 py-4 bg-emerald-600 text-white rounded-2xl shadow-2xl flex items-center gap-3 min-w-[320px]"
+          >
+            <CheckCircle2 size={24} />
+            <div>
+              <div className="font-bold">Success!</div>
+              <div className="text-sm opacity-90">{toastMessage}</div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
