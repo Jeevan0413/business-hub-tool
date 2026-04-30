@@ -104,19 +104,19 @@ export default function PitchTool() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <Card className="lg:col-span-1 p-4 h-[600px] flex flex-col">
-          <div className="flex items-center justify-between mb-6 px-2">
+        <Card className="lg:col-span-1 p-4 h-auto lg:h-[600px] flex flex-col">
+          <div className="flex items-center justify-between mb-4 lg:mb-6 px-2">
             <h3 className="font-bold dark:text-white">Slides</h3>
             <button onClick={addSlide} className="p-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors">
               <Plus size={16} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+          <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-3 lg:space-x-0 lg:space-y-3 pb-4 lg:pb-0 pr-2 custom-scrollbar no-scrollbar">
             {slides.map((slide, i) => (
               <div 
                 key={i}
                 onClick={() => setCurrentSlideIndex(i)}
-                className={`group p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                className={`group p-4 rounded-xl cursor-pointer border-2 transition-all min-w-[140px] lg:min-w-0 ${
                   currentSlideIndex === i 
                     ? 'border-primary-500 bg-primary-500/5' 
                     : 'border-transparent bg-slate-100 dark:bg-white/5 dark:text-white hover:border-slate-300 dark:hover:border-white/10'
@@ -126,7 +126,7 @@ export default function PitchTool() {
                   <span className="text-xs font-bold text-slate-400">0{i + 1}</span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeSlide(i); }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded-md transition-all"
+                    className="opacity-0 lg:opacity-0 lg:group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded-md transition-all"
                   >
                     <Trash2 size={14} />
                   </button>

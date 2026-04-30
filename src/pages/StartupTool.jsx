@@ -15,6 +15,7 @@ import {
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useNotification } from '../context/NotificationContext';
 
 const nameSuggestionsData = {
   tech: ['CodeNexus', 'ByteBound', 'DevFlow', 'SyncWave', 'DataPulse', 'CloudCraft', 'LogicLoom', 'BitBridge'],
@@ -30,14 +31,17 @@ export default function StartupTool() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedName, setSelectedName] = useState('');
   const [domainStatus, setDomainStatus] = useState(null);
+  const { showToast } = useNotification();
 
   const generateNames = () => {
     setIsGenerating(true);
+    setSuggestions([]);
     setTimeout(() => {
       const baseNames = nameSuggestionsData[category] || nameSuggestionsData.tech;
       const filtered = baseNames.sort(() => 0.5 - Math.random()).slice(0, 8);
       setSuggestions(filtered.map(name => keyword ? `${keyword}${name}` : name));
       setIsGenerating(false);
+      showToast('AI suggestions generated!', 'success');
     }, 1200);
   };
 
@@ -45,7 +49,13 @@ export default function StartupTool() {
     setSelectedName(name);
     setDomainStatus({ loading: true });
     setTimeout(() => {
-      setDomainStatus({ tld: '.com', available: Math.random() > 0.3, loading: false });
+      const available = Math.random() > 0.3;
+      setDomainStatus({ tld: '.com', available, loading: false });
+      if (available) {
+        showToast(`${name.toLowerCase()}.com is available!`, 'success');
+      } else {
+        showToast(`${name.toLowerCase()}.com is taken.`, 'warning');
+      }
     }, 800);
   };
 
@@ -57,11 +67,11 @@ export default function StartupTool() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold dark:text-white flex items-center gap-3">
           <Rocket className="text-blue-500" size={32} />
-          Startup Tool
+          Startup Engine
         </h1>
         <p className="text-slate-600 dark:text-slate-400 mt-2">Find the perfect name and identity for your next venture.</p>
       </div>
@@ -100,7 +110,7 @@ export default function StartupTool() {
             </div>
 
             {suggestions.length > 0 && (
-              <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in zoom-in duration-300">
                 {suggestions.map((name, i) => (
                   <button
                     key={i}
@@ -135,7 +145,6 @@ export default function StartupTool() {
                       { tld: '.com', available: domainStatus?.available },
                       { tld: '.io', available: Math.random() > 0.5 },
                       { tld: '.ai', available: Math.random() > 0.7 },
-                      { tld: '.in', available: true },
                     ].map((domain, i) => (
                       <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-white/5">
                         <span className="font-mono font-bold dark:text-white">{selectedName.toLowerCase()}{domain.tld}</span>
@@ -149,7 +158,6 @@ export default function StartupTool() {
                               <XCircle size={16} /> Taken
                             </span>
                           )}
-                          <button className="text-slate-400 hover:text-primary-600"><ExternalLink size={16} /></button>
                         </div>
                       </div>
                     ))}
@@ -160,7 +168,7 @@ export default function StartupTool() {
               <Card>
                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2 dark:text-white">
                   <Palette size={20} className="text-purple-500" />
-                  Logo Preview
+                  Identity Preview
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {logoStyles.map((style, i) => (
@@ -172,32 +180,23 @@ export default function StartupTool() {
                     </div>
                   ))}
                 </div>
-                <Button variant="secondary" className="w-full mt-6 text-sm">
-                  <Layout size={16} /> Customize Identity
-                </Button>
               </Card>
             </div>
           )}
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none">
+          <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl shadow-blue-500/20">
             <h3 className="text-xl font-bold mb-4">Launch Strategy</h3>
             <p className="text-blue-100 mb-6 text-sm leading-relaxed">
-              Naming is just the first step. Use our Planning and Pitch tools to build a solid foundation for your new startup.
+              Naming is just the first step. Use our Strategy Lab and Pitch Builder to build a solid foundation.
             </p>
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm font-medium p-3 bg-white/10 rounded-xl">
-                <CheckCircle2 size={18} className="text-blue-300" />
-                Domain Availability Check
+                <CheckCircle2 size={18} className="text-blue-300" /> Domain Availability Check
               </div>
               <div className="flex items-center gap-3 text-sm font-medium p-3 bg-white/10 rounded-xl">
-                <CheckCircle2 size={18} className="text-blue-300" />
-                Social Media Handle Sync
-              </div>
-              <div className="flex items-center gap-3 text-sm font-medium p-3 bg-white/10 rounded-xl">
-                <CheckCircle2 size={18} className="text-blue-300" />
-                Trademark Basic Search
+                <CheckCircle2 size={18} className="text-blue-300" /> Social Media Sync
               </div>
             </div>
           </Card>
@@ -207,15 +206,11 @@ export default function StartupTool() {
             <ul className="space-y-4 text-sm text-slate-600 dark:text-slate-400">
               <li className="flex gap-3">
                 <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">1</span>
-                Keep it short and memorable (2-3 syllables).
+                Keep it short and memorable.
               </li>
               <li className="flex gap-3">
                 <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">2</span>
-                Avoid numbers and hyphens if possible.
-              </li>
-              <li className="flex gap-3">
-                <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">3</span>
-                Check for linguistic issues in target markets.
+                Avoid numbers and hyphens.
               </li>
             </ul>
           </Card>

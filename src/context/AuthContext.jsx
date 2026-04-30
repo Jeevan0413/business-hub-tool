@@ -13,33 +13,59 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState(() => {
+    const savedUsers = localStorage.getItem('hub_users');
+    return savedUsers ? JSON.parse(savedUsers) : [
+      { id: '1', email: 'admin@hub.com', password: 'admin', name: 'Admin User', role: 'Admin' }
+    ];
+  });
 
-  // Mock login function
+  useEffect(() => {
+    localStorage.setItem('hub_users', JSON.stringify(users));
+  }, [users]);
+
   const login = (email, password) => {
-    // Simulate API call
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const mockUser = {
-          id: '1',
-          email: email,
-          name: email.split('@')[0],
-          role: email.includes('admin') ? 'Admin' : 'Employee',
-          workspace: 'My Awesome Company'
+        const foundUser = users.find(u => u.email === email && u.password === password);
+        if (foundUser) {
+          setUser(foundUser);
+          localStorage.setItem('current_user', JSON.stringify(foundUser));
+          resolve(foundUser);
+        } else {
+          reject(new Error('Invalid email or password'));
+        }
+      }, 800);
+    });
+  };
+
+  const signup = (userData) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (users.find(u => u.email === userData.email)) {
+          reject(new Error('User already exists'));
+          return;
+        }
+        const newUser = {
+          ...userData,
+          id: Math.random().toString(36).substring(2, 9),
+          role: userData.role || 'Employee' // Default role
         };
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve(mockUser);
-      }, 1000);
+        setUsers(prev => [...prev, newUser]);
+        setUser(newUser);
+        localStorage.setItem('current_user', JSON.stringify(newUser));
+        resolve(newUser);
+      }, 800);
     });
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem('current_user');
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
+    const savedUser = localStorage.getItem('current_user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -48,7 +74,9 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    users,
     login,
+    signup,
     logout,
     loading,
     isAdmin: user?.role === 'Admin'

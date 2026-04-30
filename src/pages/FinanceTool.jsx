@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Download, 
   ReceiptText, 
@@ -9,60 +9,54 @@ import {
   TrendingDown, 
   FileText,
   CreditCard,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  CheckCircle2,
+  Clock,
+  Send,
+  History
 } from 'lucide-react';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useTheme } from '../context/ThemeContext';
-
+import { useData } from '../context/DataContext';
+import { useNotification } from '../context/NotificationContext';
 import { jsPDF } from 'jspdf';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie,
-  AreaChart,
-  Area
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  Tooltip 
 } from 'recharts';
 
 const COLORS = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b'];
 
 export default function FinanceTool() {
   const { isDarkMode } = useTheme();
+  const { invoices, addInvoice, expenses, addExpense, stats } = useData();
+  const { showToast } = useNotification();
   
-  const chartColors = {
-    grid: isDarkMode ? '#1e293b' : '#e2e8f0',
-    text: isDarkMode ? '#94a3b8' : '#64748b',
-    tooltipBg: isDarkMode ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.8)',
-    tooltipBorder: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-  };
-
   const [activeTab, setActiveTab] = useState('invoice');
-
   const [formData, setFormData] = useState({
     businessName: '',
     clientName: '',
     gstNumber: '',
-    invoiceNumber: 'INV-' + Math.floor(Math.random() * 10000),
+    invoiceNumber: `INV-${1000 + invoices.length + 1}`,
     date: new Date().toISOString().split('T')[0],
     items: [{ description: '', quantity: 1, price: 0 }],
     paymentMethod: 'Bank Transfer'
   });
 
-  const [expenses, setExpenses] = useState([
-    { id: 1, category: 'Software', amount: 450, date: '2025-04-10' },
-    { id: 2, category: 'Marketing', amount: 1200, date: '2025-04-15' },
-    { id: 3, category: 'Office', amount: 300, date: '2025-04-20' },
-  ]);
-
   const [newExpense, setNewExpense] = useState({ category: 'Software', amount: 0, date: new Date().toISOString().split('T')[0] });
+
+  // Update invoice number when list changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      invoiceNumber: `INV-${1000 + invoices.length + 1}`
+    }));
+  }, [invoices]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -90,45 +84,41 @@ export default function FinanceTool() {
     }));
   };
 
-  const calculateSubtotal = () => {
-    return formData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  };
+  const calculateSubtotal = () => formData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const calculateGST = () => calculateSubtotal() * 0.18;
+  const calculateTotal = () => calculateSubtotal() + calculateGST();
 
-  const calculateGST = () => {
-    return calculateSubtotal() * 0.18; // 18% GST
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateGST();
-  };
-
-  const downloadPDF = () => {
-    const doc = new jsPDF();
+  const handleSaveAndDownload = () => {
     const subtotal = calculateSubtotal();
-    const gst = calculateGST();
-    const total = calculateTotal();
+    if (subtotal <= 0) {
+      showToast('Please add items to your invoice', 'warning');
+      return;
+    }
 
+    const total = calculateTotal();
+    const invoiceRecord = {
+      ...formData,
+      subtotal,
+      gst: calculateGST(),
+      total,
+      status: 'Pending'
+    };
+
+    addInvoice(invoiceRecord);
+    
+    // Generate PDF
+    const doc = new jsPDF();
     doc.setFontSize(22);
     doc.setTextColor(14, 165, 233);
     doc.text('TAX INVOICE', 105, 20, { align: 'center' });
-    
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.text(`From: ${formData.businessName}`, 20, 40);
-    doc.text(`GSTIN: ${formData.gstNumber || 'N/A'}`, 20, 47);
     doc.text(`To: ${formData.clientName}`, 20, 57);
     doc.text(`Invoice #: ${formData.invoiceNumber}`, 150, 40);
     doc.text(`Date: ${formData.date}`, 150, 47);
-
     doc.line(20, 65, 190, 65);
     
-    doc.setFont(undefined, 'bold');
-    doc.text('Description', 20, 75);
-    doc.text('Qty', 120, 75);
-    doc.text('Price', 150, 75);
-    doc.text('Total', 180, 75);
-
-    doc.setFont(undefined, 'normal');
     let y = 85;
     formData.items.forEach(item => {
       doc.text(item.description, 20, y);
@@ -139,54 +129,26 @@ export default function FinanceTool() {
     });
 
     doc.line(20, y, 190, y);
-    y += 10;
-    doc.text(`Subtotal:`, 150, y);
-    doc.text(`$${subtotal.toFixed(2)}`, 180, y);
-    y += 7;
-    doc.text(`GST (18%):`, 150, y);
-    doc.text(`$${gst.toFixed(2)}`, 180, y);
-    y += 10;
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Grand Total:`, 150, y);
-    doc.text(`$${total.toFixed(2)}`, 180, y);
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Payment Method: ${formData.paymentMethod}`, 20, y + 20);
-    doc.text(`This is a computer generated invoice.`, 105, y + 40, { align: 'center' });
-
+    doc.text(`Total: $${total.toFixed(2)}`, 180, y + 15, { align: 'right' });
     doc.save(`invoice_${formData.invoiceNumber}.pdf`);
+
+    showToast('Invoice generated and saved to history', 'success');
+    
+    // Reset form
+    setFormData({
+      ...formData,
+      clientName: '',
+      items: [{ description: '', quantity: 1, price: 0 }]
+    });
   };
 
-  const downloadTemplate = () => {
-    const headers = ['Description', 'Quantity', 'Price'];
-    const csvContent = [
-      headers.join(','),
-      'Website Design,1,2500',
-      'Hosting Service,12,20',
-      'Technical Support,5,50'
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'invoice_template.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleAddExpense = (e) => {
+  const handleExpenseSubmit = (e) => {
     e.preventDefault();
-    setExpenses([...expenses, { ...newExpense, id: Date.now() }]);
+    if (newExpense.amount <= 0) return;
+    addExpense(newExpense);
     setNewExpense({ category: 'Software', amount: 0, date: new Date().toISOString().split('T')[0] });
+    showToast('Expense recorded', 'success');
   };
-
-  const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-  const totalRevenue = 15000; // Mock revenue for P&L
 
   const expenseData = [
     { name: 'Software', value: expenses.filter(e => e.category === 'Software').reduce((s, e) => s + parseFloat(e.amount), 0) },
@@ -201,22 +163,18 @@ export default function FinanceTool() {
         <div>
           <h1 className="text-3xl font-bold dark:text-white flex items-center gap-3">
             <DollarSign className="text-emerald-500" size={32} />
-            Finance & Invoicing
+            Finance Hub
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">Manage invoices, expenses, and track your business health.</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={downloadTemplate}>
-            <Download size={20} /> Download Template
-          </Button>
         </div>
       </div>
 
       <div className="flex gap-2 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-fit">
         {[
-          { id: 'invoice', label: 'Invoicing', icon: FileText },
+          { id: 'invoice', label: 'Create Invoice', icon: FileText },
+          { id: 'history', label: 'History', icon: History },
           { id: 'expenses', label: 'Expenses', icon: CreditCard },
-          { id: 'summary', label: 'P&L Summary', icon: PieChartIcon },
+          { id: 'summary', label: 'Analytics', icon: PieChartIcon },
         ].map(tab => (
           <button
             key={tab.id}
@@ -234,46 +192,17 @@ export default function FinanceTool() {
       </div>
 
       {activeTab === 'invoice' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <h3 className="text-lg font-bold mb-6 dark:text-white">Business Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input 
-                  label="Your Business Name" 
-                  name="businessName"
-                  value={formData.businessName}
-                  onChange={handleInputChange}
-                  placeholder="e.g. Acme Solutions"
-                />
-                <Input 
-                  label="GST Number (India)" 
-                  name="gstNumber"
-                  value={formData.gstNumber}
-                  onChange={handleInputChange}
-                  placeholder="22AAAAA0000A1Z5"
-                />
-                <Input 
-                  label="Client Name" 
-                  name="clientName"
-                  value={formData.clientName}
-                  onChange={handleInputChange}
-                  placeholder="e.g. John Doe"
-                />
+                <Input label="Your Business Name" name="businessName" value={formData.businessName} onChange={handleInputChange} placeholder="e.g. Acme Solutions" />
+                <Input label="GST Number" name="gstNumber" value={formData.gstNumber} onChange={handleInputChange} placeholder="22AAAAA0000A1Z5" />
+                <Input label="Client Name" name="clientName" value={formData.clientName} onChange={handleInputChange} placeholder="e.g. John Doe" />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Invoice #" 
-                    name="invoiceNumber"
-                    value={formData.invoiceNumber}
-                    onChange={handleInputChange}
-                  />
-                  <Input 
-                    label="Date" 
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                  />
+                  <Input label="Invoice #" value={formData.invoiceNumber} readOnly className="bg-slate-50 dark:bg-white/5" />
+                  <Input label="Date" type="date" name="date" value={formData.date} onChange={handleInputChange} />
                 </div>
               </div>
             </Card>
@@ -281,44 +210,15 @@ export default function FinanceTool() {
             <Card>
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold dark:text-white">Line Items</h3>
-                <Button variant="secondary" onClick={addItem} className="px-3 py-1.5 text-sm">
-                  <Plus size={16} /> Add Item
-                </Button>
+                <Button variant="secondary" onClick={addItem} className="px-3 py-1.5 text-sm"><Plus size={16} /> Add Item</Button>
               </div>
-              
               <div className="space-y-4">
                 {formData.items.map((item, index) => (
-                  <div key={index} className="flex flex-col md:flex-row gap-4 items-end bg-slate-50 dark:bg-white/5 p-4 rounded-2xl group border border-slate-200 dark:border-white/10">
-                    <div className="flex-1 w-full">
-                      <Input 
-                        label="Description"
-                        value={item.description}
-                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                        placeholder="Service or Product"
-                      />
-                    </div>
-                    <div className="w-full md:w-24">
-                      <Input 
-                        label="Qty"
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="w-full md:w-32">
-                      <Input 
-                        label="Price ($)"
-                        type="number"
-                        value={item.price}
-                        onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <button 
-                      onClick={() => removeItem(index)}
-                      className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                  <div key={index} className="flex flex-col md:flex-row gap-4 items-end bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/10 group">
+                    <div className="flex-1 w-full"><Input label="Description" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} placeholder="Service or Product" /></div>
+                    <div className="w-full md:w-24"><Input label="Qty" type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)} /></div>
+                    <div className="w-full md:w-32"><Input label="Price ($)" type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)} /></div>
+                    <button onClick={() => removeItem(index)} className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-lg"><Trash2 size={20} /></button>
                   </div>
                 ))}
               </div>
@@ -326,177 +226,103 @@ export default function FinanceTool() {
           </div>
 
           <div className="space-y-6">
-            <Card className="sticky top-8 border-2 border-primary-500/20">
-              <h3 className="text-lg font-bold mb-6 dark:text-white">Summary</h3>
+            <Card className="sticky top-28 border-2 border-primary-500/20">
+              <h3 className="text-lg font-bold mb-6 dark:text-white">Total Summary</h3>
               <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>Subtotal</span>
-                  <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>GST (18%)</span>
-                  <span className="font-medium">${calculateGST().toFixed(2)}</span>
-                </div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-400"><span>Subtotal</span><span className="font-medium">${calculateSubtotal().toFixed(2)}</span></div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-400"><span>GST (18%)</span><span className="font-medium">${calculateGST().toFixed(2)}</span></div>
                 <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex justify-between text-2xl font-bold dark:text-white">
-                  <span>Total</span>
-                  <span className="text-emerald-500">${calculateTotal().toFixed(2)}</span>
+                  <span>Total</span><span className="text-emerald-500">${calculateTotal().toFixed(2)}</span>
                 </div>
               </div>
-              
-              <Input 
-                label="Payment Method"
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleInputChange}
-                className="mb-6"
-              />
-
-              <Button onClick={downloadPDF} className="w-full h-12 shadow-lg shadow-primary-500/20">
-                <Download size={20} /> Generate PDF
-              </Button>
+              <Button onClick={handleSaveAndDownload} className="w-full h-12 shadow-lg shadow-primary-500/20"><Download size={20} /> Generate & Save</Button>
             </Card>
           </div>
         </div>
       )}
 
+      {activeTab === 'history' && (
+        <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h3 className="text-lg font-bold mb-6 dark:text-white">Invoice History</h3>
+          <div className="table-container">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider">
+                  <th className="px-6 py-4">Invoice #</th>
+                  <th className="px-6 py-4">Client</th>
+                  <th className="px-6 py-4">Total</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/5">
+                {invoices.length === 0 ? (
+                  <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-500">No invoices generated yet.</td></tr>
+                ) : (
+                  invoices.map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                      <td className="px-6 py-4 font-mono font-bold dark:text-white">{inv.invoiceNumber}</td>
+                      <td className="px-6 py-4 dark:text-slate-300">{inv.clientName}</td>
+                      <td className="px-6 py-4 font-bold text-emerald-500">${inv.total?.toFixed(2)}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-600 dark:bg-amber-900/30 flex items-center gap-1 w-fit">
+                          <Clock size={12} /> {inv.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right"><button className="p-2 text-slate-400 hover:text-primary-600"><Download size={18} /></button></td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
       {activeTab === 'expenses' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card className="lg:col-span-2">
             <h3 className="text-lg font-bold mb-6 dark:text-white">Recent Expenses</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-white/5">
-                    <th className="pb-4 px-2">Category</th>
-                    <th className="pb-4 px-2">Amount</th>
-                    <th className="pb-4 px-2">Date</th>
-                    <th className="pb-4 px-2 text-right">Action</th>
-                  </tr>
-                </thead>
+            <div className="table-container">
+              <table className="w-full text-left">
+                <thead><tr className="text-slate-500 text-sm border-b border-slate-200 dark:border-white/5"><th className="pb-4">Category</th><th className="pb-4">Amount</th><th className="pb-4">Date</th></tr></thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                   {expenses.map(exp => (
-                    <tr key={exp.id}>
-                      <td className="py-4 px-2 dark:text-white font-medium">{exp.category}</td>
-                      <td className="py-4 px-2 text-red-500 font-bold">-${exp.amount}</td>
-                      <td className="py-4 px-2 text-slate-500">{exp.date}</td>
-                      <td className="py-4 px-2 text-right">
-                        <button className="text-slate-400 hover:text-red-500"><Trash2 size={16} /></button>
-                      </td>
-                    </tr>
+                    <tr key={exp.id}><td className="py-4 dark:text-white font-medium">{exp.category}</td><td className="py-4 text-red-500 font-bold">-${exp.amount}</td><td className="py-4 text-slate-500">{exp.date}</td></tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </Card>
-
           <Card>
             <h3 className="text-lg font-bold mb-6 dark:text-white">Add Expense</h3>
-            <form onSubmit={handleAddExpense} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium dark:text-slate-400">Category</label>
-                <select 
-                  className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl dark:text-white px-4 py-2 outline-none"
-                  value={newExpense.category}
-                  onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                >
-                  <option>Software</option>
-                  <option>Marketing</option>
-                  <option>Office</option>
-                  <option>Travel</option>
-                  <option>Other</option>
-                </select>
+            <form onSubmit={handleExpenseSubmit} className="space-y-4">
+              <div className="space-y-1.5"><label className="text-sm font-medium dark:text-slate-400">Category</label>
+                <select className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl dark:text-white px-4 py-2 outline-none" value={newExpense.category} onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}><option>Software</option><option>Marketing</option><option>Office</option><option>Other</option></select>
               </div>
-              <Input 
-                label="Amount ($)" 
-                type="number"
-                value={newExpense.amount}
-                onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-              />
-              <Input 
-                label="Date" 
-                type="date"
-                value={newExpense.date}
-                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-              />
-              <Button type="submit" className="w-full">
-                Add Expense
-              </Button>
+              <Input label="Amount ($)" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} />
+              <Button type="submit" className="w-full">Record Expense</Button>
             </form>
           </Card>
         </div>
       )}
 
       {activeTab === 'summary' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card className="md:col-span-1">
-            <h3 className="text-lg font-bold mb-8 dark:text-white">Profit & Loss</h3>
+            <h3 className="text-lg font-bold mb-8 dark:text-white">Financial Summary</h3>
             <div className="space-y-6">
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                <div className="flex items-center gap-2 text-emerald-600 mb-1">
-                  <TrendingUp size={18} />
-                  <span className="text-sm font-bold uppercase tracking-wider">Revenue</span>
-                </div>
-                <div className="text-3xl font-black text-emerald-600">${totalRevenue.toLocaleString()}</div>
-              </div>
-              
-              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
-                <div className="flex items-center gap-2 text-red-500 mb-1">
-                  <TrendingDown size={18} />
-                  <span className="text-sm font-bold uppercase tracking-wider">Expenses</span>
-                </div>
-                <div className="text-3xl font-black text-red-500">${totalExpenses.toLocaleString()}</div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-primary-600 text-white shadow-xl shadow-primary-500/20">
-                <div className="text-sm font-bold uppercase tracking-wider opacity-80 mb-1">Net Profit</div>
-                <div className="text-4xl font-black">${(totalRevenue - totalExpenses).toLocaleString()}</div>
-              </div>
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20"><div className="flex items-center gap-2 text-emerald-600 mb-1"><TrendingUp size={18} /><span className="text-sm font-bold tracking-wider">REVENUE</span></div><div className="text-3xl font-black text-emerald-600">${stats.monthlyRevenue.toLocaleString()}</div></div>
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20"><div className="flex items-center gap-2 text-red-500 mb-1"><TrendingDown size={18} /><span className="text-sm font-bold tracking-wider">EXPENSES</span></div><div className="text-3xl font-black text-red-500">${stats.totalExpenses.toLocaleString()}</div></div>
+              <div className="p-6 rounded-2xl bg-primary-600 text-white shadow-xl shadow-primary-500/20"><div className="text-sm font-bold tracking-wider opacity-80 mb-1">NET PROFIT</div><div className="text-4xl font-black">${(stats.monthlyRevenue - stats.totalExpenses).toLocaleString()}</div></div>
             </div>
           </Card>
-
           <Card className="md:col-span-2">
-            <h3 className="text-lg font-bold mb-8 dark:text-white">Expense Breakdown</h3>
+            <h3 className="text-lg font-bold mb-8 dark:text-white">Spending Analytics</h3>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expenseData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {expenseData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="glass p-3 rounded-xl border border-white/20 shadow-2xl backdrop-blur-md">
-                            <p className="font-bold text-slate-800 dark:text-white">{payload[0].name}</p>
-                            <p className="text-primary-600 font-black">${payload[0].value.toLocaleString()}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </PieChart>
-
-              </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={expenseData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{expenseData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-              {expenseData.map((data, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                  <span className="text-sm dark:text-slate-400">{data.name}</span>
-                </div>
-              ))}
-            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">{expenseData.map((data, i) => <div key={i} className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} /><span className="text-sm dark:text-slate-400">{data.name}</span></div>)}</div>
           </Card>
         </div>
       )}

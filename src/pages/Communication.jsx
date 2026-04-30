@@ -9,11 +9,13 @@ import {
   Search,
   Layout,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  RefreshCcw
 } from 'lucide-react';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useNotification } from '../context/NotificationContext';
 
 const initialTemplates = [
   { id: 1, name: 'Welcome Email', subject: 'Welcome to [Company Name]!', body: 'Hi [Name], we are excited to have you join our team as [Role]...' },
@@ -27,6 +29,7 @@ export default function Communication() {
   const [recipient, setRecipient] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sentCount, setSentCount] = useState(128);
+  const { showToast } = useNotification();
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -34,20 +37,24 @@ export default function Communication() {
     setTimeout(() => {
       setIsSending(false);
       setSentCount(prev => prev + 1);
-      alert('Email sent successfully!');
+      showToast(`Email successfully sent to ${recipient || 'recipient'}!`, 'success');
+      setRecipient('');
     }, 1500);
   };
 
   const generateAIContent = () => {
-    // Mock AI generation
-    setSelectedTemplate({
-      ...selectedTemplate,
-      body: `Hi [Name],\n\nI hope this email finds you well. I'm reaching out from [Company Name] regarding our recent discussion about the [Role] position. We were very impressed with your background and would love to move forward...\n\nBest,\n[Your Name]`
-    });
+    showToast('AI is drafting your message...', 'info');
+    setTimeout(() => {
+      setSelectedTemplate({
+        ...selectedTemplate,
+        body: `Hi [Name],\n\nI hope this email finds you well. I'm reaching out from [Company Name] regarding our recent discussion about the [Role] position. We were very impressed with your background and would love to move forward...\n\nBest,\n[Your Name]`
+      });
+      showToast('AI draft generated!', 'success');
+    }, 1000);
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold dark:text-white flex items-center gap-3">
@@ -63,37 +70,25 @@ export default function Communication() {
           <div className="p-3 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600">
             <Send size={24} />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Sent Today</p>
-            <h3 className="text-2xl font-bold dark:text-white">{sentCount}</h3>
-          </div>
+          <div><p className="text-sm text-slate-500">Sent Today</p><h3 className="text-2xl font-bold dark:text-white">{sentCount}</h3></div>
         </Card>
         <Card className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
             <Users size={24} />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Recipients</p>
-            <h3 className="text-2xl font-bold dark:text-white">1,240</h3>
-          </div>
+          <div><p className="text-sm text-slate-500">Recipients</p><h3 className="text-2xl font-bold dark:text-white">1,240</h3></div>
         </Card>
         <Card className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
             <CheckCircle2 size={24} />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Deliverability</p>
-            <h3 className="text-2xl font-bold dark:text-white">99.2%</h3>
-          </div>
+          <div><p className="text-sm text-slate-500">Deliverability</p><h3 className="text-2xl font-bold dark:text-white">99.2%</h3></div>
         </Card>
         <Card className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600">
             <Clock size={24} />
           </div>
-          <div>
-            <p className="text-sm text-slate-500">Scheduled</p>
-            <h3 className="text-2xl font-bold dark:text-white">12</h3>
-          </div>
+          <div><p className="text-sm text-slate-500">Scheduled</p><h3 className="text-2xl font-bold dark:text-white">12</h3></div>
         </Card>
       </div>
 
@@ -128,15 +123,16 @@ export default function Communication() {
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-600 to-purple-800 text-white border-none p-6">
-            <div className="flex items-center gap-3 mb-4">
+          <Card className="bg-gradient-to-br from-purple-600 to-purple-800 text-white border-none p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+            <div className="flex items-center gap-3 mb-4 relative z-10">
               <Sparkles className="text-purple-200" />
               <h3 className="text-lg font-bold">AI Assistant</h3>
             </div>
-            <p className="text-purple-100 text-sm mb-6 leading-relaxed">
+            <p className="text-purple-100 text-sm mb-6 leading-relaxed relative z-10">
               Need help writing professional emails? Our AI can draft templates based on your business needs.
             </p>
-            <Button onClick={generateAIContent} className="w-full bg-white/20 hover:bg-white/30 border-white/20 backdrop-blur-md">
+            <Button onClick={generateAIContent} className="w-full bg-white/20 hover:bg-white/30 border-white/20 backdrop-blur-md relative z-10">
               Draft with AI
             </Button>
           </Card>
@@ -157,12 +153,7 @@ export default function Communication() {
                   onChange={(e) => setRecipient(e.target.value)}
                   required
                 />
-                <Input 
-                  label="Recipient Email" 
-                  type="email" 
-                  placeholder="john@example.com" 
-                  required
-                />
+                <Input label="Recipient Email" type="email" placeholder="john@example.com" required />
               </div>
               <Input 
                 label="Subject" 
@@ -180,9 +171,7 @@ export default function Communication() {
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4">
-                <Button variant="secondary" type="button">
-                  Save Draft
-                </Button>
+                <Button variant="secondary" type="button">Save Draft</Button>
                 <Button type="submit" disabled={isSending} className="px-10">
                   {isSending ? <RefreshCcw className="animate-spin" /> : <><Send size={18} /> Send Email</>}
                 </Button>
