@@ -19,25 +19,74 @@ const INITIAL_EMPLOYEES = [
 export const DataProvider = ({ children }) => {
   const [employees, setEmployees] = useState(() => {
     const saved = localStorage.getItem('employees');
-    return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
+    if (!saved) return INITIAL_EMPLOYEES;
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : INITIAL_EMPLOYEES;
+    } catch (e) { return INITIAL_EMPLOYEES; }
   });
 
   const [invoices, setInvoices] = useState(() => {
     const saved = localStorage.getItem('invoices');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
   });
 
   const [expenses, setExpenses] = useState(() => {
     const saved = localStorage.getItem('expenses');
-    return saved ? JSON.parse(saved) : [
+    const defaults = [
       { id: 1, category: 'Software', amount: 450, date: '2025-04-10' },
       { id: 2, category: 'Marketing', amount: 1200, date: '2025-04-15' },
     ];
+    if (!saved) return defaults;
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : defaults;
+    } catch (e) { return defaults; }
   });
 
   const [activities, setActivities] = useState(() => {
     const saved = localStorage.getItem('activities');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  });
+
+  const [userPlan, setUserPlan] = useState(() => {
+    const saved = localStorage.getItem('userPlan');
+    return saved || 'Free';
+  });
+
+  const [invoiceSettings, setInvoiceSettings] = useState(() => {
+    const saved = localStorage.getItem('invoiceSettings');
+    const defaults = {
+      templateId: 'default',
+      themeColor: '#0ea5e9',
+      logo: null,
+      footerText: '',
+      notes: '',
+      terms: '',
+      sectionsOrder: ['header', 'info', 'items', 'summary', 'footer'],
+      visibleSections: { gst: true, notes: true, terms: true, footer: true },
+      savedTemplates: []
+    };
+    if (!saved) return defaults;
+    try {
+      const parsed = JSON.parse(saved);
+      return { 
+        ...defaults, 
+        ...parsed, 
+        visibleSections: { ...defaults.visibleSections, ...(parsed.visibleSections || {}) },
+        sectionsOrder: Array.isArray(parsed.sectionsOrder) ? parsed.sectionsOrder : defaults.sectionsOrder
+      };
+    } catch (e) {
+      return defaults;
+    }
   });
 
   // Sync with localStorage
@@ -56,6 +105,14 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('activities', JSON.stringify(activities));
   }, [activities]);
+
+  useEffect(() => {
+    localStorage.setItem('userPlan', userPlan);
+  }, [userPlan]);
+
+  useEffect(() => {
+    localStorage.setItem('invoiceSettings', JSON.stringify(invoiceSettings));
+  }, [invoiceSettings]);
 
   const addActivity = (action, user = 'System') => {
     const newActivity = {
@@ -89,6 +146,15 @@ export const DataProvider = ({ children }) => {
     addActivity(`Recorded expense: ${expense.category} ($${expense.amount})`);
   };
 
+  const updatePlan = (plan) => {
+    setUserPlan(plan);
+    addActivity(`Upgraded to ${plan} plan`);
+  };
+
+  const updateInvoiceSettings = (settings) => {
+    setInvoiceSettings(prev => ({ ...prev, ...settings }));
+  };
+
   const value = {
     employees,
     addEmployee,
@@ -98,6 +164,10 @@ export const DataProvider = ({ children }) => {
     expenses,
     addExpense,
     activities,
+    userPlan,
+    updatePlan,
+    invoiceSettings,
+    updateInvoiceSettings,
     stats: {
       totalEmployees: employees.length,
       monthlyRevenue: invoices.reduce((sum, inv) => sum + (inv.total || 0), 0) + 15000, // Mock base revenue

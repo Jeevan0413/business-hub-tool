@@ -30,7 +30,8 @@ export default function Button({ children, className, variant = 'primary', ...pr
     primary: 'bg-primary-600 text-white shadow-lg shadow-primary-500/20',
     secondary: 'bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10',
     danger: 'bg-red-500 text-white shadow-lg shadow-red-500/20',
-    ghost: 'bg-transparent text-slate-600 dark:text-slate-400'
+    ghost: 'bg-transparent text-slate-600 dark:text-slate-400',
+    outline: 'bg-transparent text-primary-600 dark:text-primary-400 border-2 border-primary-600/30 dark:border-primary-500/30 hover:border-primary-600 dark:hover:border-primary-500'
   };
 
   return (

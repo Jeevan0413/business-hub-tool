@@ -13,11 +13,16 @@ import {
   CheckCircle2,
   Clock,
   Send,
-  History
+  History,
+  Settings,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import InvoiceCustomization from '../components/InvoiceCustomization';
+import UpgradeModal from '../components/UpgradeModal';
 import { useTheme } from '../context/ThemeContext';
 import { useData } from '../context/DataContext';
 import { useNotification } from '../context/NotificationContext';
@@ -34,10 +39,11 @@ const COLORS = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b'];
 
 export default function FinanceTool() {
   const { isDarkMode } = useTheme();
-  const { invoices, addInvoice, expenses, addExpense, stats } = useData();
+  const { invoices, addInvoice, expenses, addExpense, stats, userPlan, invoiceSettings } = useData();
   const { showToast } = useNotification();
   
   const [activeTab, setActiveTab] = useState('invoice');
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     businessName: '',
     clientName: '',
@@ -89,6 +95,13 @@ export default function FinanceTool() {
   const calculateTotal = () => calculateSubtotal() + calculateGST();
 
   const handleSaveAndDownload = () => {
+    // Usage restriction for Free users
+    if (userPlan === 'Free' && invoices.length >= 3) {
+      setIsUpgradeModalOpen(true);
+      showToast('Free plan limit reached (3 invoices). Upgrade to continue!', 'warning');
+      return;
+    }
+
     const subtotal = calculateSubtotal();
     if (subtotal <= 0) {
       showToast('Please add items to your invoice', 'warning');
@@ -108,38 +121,209 @@ export default function FinanceTool() {
     
     // Generate PDF
     const doc = new jsPDF();
-    doc.setFontSize(22);
-    doc.setTextColor(14, 165, 233);
-    doc.text('TAX INVOICE', 105, 20, { align: 'center' });
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text(`From: ${formData.businessName}`, 20, 40);
-    doc.text(`To: ${formData.clientName}`, 20, 57);
-    doc.text(`Invoice #: ${formData.invoiceNumber}`, 150, 40);
-    doc.text(`Date: ${formData.date}`, 150, 47);
-    doc.line(20, 65, 190, 65);
-    
-    let y = 85;
-    formData.items.forEach(item => {
-      doc.text(item.description, 20, y);
-      doc.text(item.quantity.toString(), 120, y);
-      doc.text(`$${item.price}`, 150, y);
-      doc.text(`$${(item.quantity * item.price).toFixed(2)}`, 180, y);
-      y += 10;
-    });
+    const themeColor = invoiceSettings.themeColor || '#0ea5e9';
+    const isPro = userPlan === 'Pro' || userPlan === 'Premium';
+    const template = invoiceSettings.templateId || 'default';
+    const visible = invoiceSettings.visibleSections || { gst: true, notes: true, terms: true, footer: true };
 
-    doc.line(20, y, 190, y);
-    doc.text(`Total: $${total.toFixed(2)}`, 180, y + 15, { align: 'right' });
-    doc.save(`invoice_${formData.invoiceNumber}.pdf`);
+    // Helper to set color from hex
+    const setColor = (hex, type = 'fill') => {
+      if (!hex) return;
+      try {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        if (type === 'fill') doc.setFillColor(r, g, b);
+        else if (type === 'text') doc.setTextColor(r, g, b);
+        else if (type === 'draw') doc.setDrawColor(r, g, b);
+      } catch (e) {
+        if (type === 'fill') doc.setFillColor(14, 165, 233);
+        else if (type === 'text') doc.setTextColor(0, 0, 0);
+      }
+    };
 
-    showToast('Invoice generated and saved to history', 'success');
+    const renderHeader = (y) => {
+      if (template === 'modern') {
+        setColor(themeColor, 'fill');
+        doc.rect(0, 0, 80, 297, 'F');
+        doc.setTextColor(255, 255, 255);
+        if (isPro && invoiceSettings.logo) {
+          try { doc.addImage(invoiceSettings.logo, 'JPEG', 15, 20, 50, 50); } catch (e) {}
+        }
+        doc.setFontSize(24);
+        doc.text('INVOICE', 40, 90, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(`#${formData.invoiceNumber}`, 40, 100, { align: 'center' });
+        doc.text(formData.date, 40, 105, { align: 'center' });
+        return { startX: 90, nextY: 20 };
+      }
+
+      if (template === 'minimal') {
+        doc.setFontSize(10);
+        doc.setTextColor(150, 150, 150);
+        doc.text('TAX INVOICE', 190, 20, { align: 'right' });
+        if (isPro && invoiceSettings.logo) {
+          try { doc.addImage(invoiceSettings.logo, 'JPEG', 20, 15, 20, 20); } catch (e) {}
+        }
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(formData.businessName || 'Business Name', 20, 45);
+        return { startX: 20, nextY: 60 };
+      }
+
+      if (template === 'classic') {
+        setColor(themeColor, 'draw');
+        doc.setLineWidth(2);
+        doc.line(20, 15, 190, 15);
+        doc.setFontSize(30);
+        setColor(themeColor, 'text');
+        doc.text('INVOICE', 105, 35, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(100, 100, 100);
+        doc.text(formData.invoiceNumber, 105, 45, { align: 'center' });
+        return { startX: 20, nextY: 65 };
+      }
+
+      // Default
+      setColor(themeColor, 'fill');
+      doc.rect(0, 0, 210, 40, 'F');
+      if (isPro && invoiceSettings.logo) {
+        try { doc.addImage(invoiceSettings.logo, 'JPEG', 20, 10, 25, 25); } catch (e) {}
+      }
+      doc.setFontSize(24);
+      doc.setTextColor(255, 255, 255);
+      doc.text('TAX INVOICE', 190, 25, { align: 'right' });
+      return { startX: 20, nextY: 55 };
+    };
+
+    const renderInfo = (x, y) => {
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FROM:', x, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formData.businessName || 'Your Business', x, y + 7);
+      if (formData.gstNumber) doc.text(`GST: ${formData.gstNumber}`, x, y + 14);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('BILL TO:', x, y + 30);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formData.clientName || 'Valued Client', x, y + 37);
+      
+      if (template !== 'modern') {
+        doc.text(`Invoice #: ${formData.invoiceNumber}`, 150, y + 7);
+        doc.text(`Date: ${formData.date}`, 150, y + 14);
+      }
+      return y + 60;
+    };
+
+    const renderItems = (x, y) => {
+      doc.setFillColor(template === 'minimal' ? 250 : 240, template === 'minimal' ? 250 : 240, template === 'minimal' ? 250 : 240);
+      doc.rect(x, y, 190 - x + 20, 10, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(template === 'minimal' ? 100 : 0, template === 'minimal' ? 100 : 0, template === 'minimal' ? 100 : 0);
+      doc.text('Description', x + 5, y + 7);
+      doc.text('Qty', 140, y + 7);
+      doc.text('Total', 180, y + 7, { align: 'right' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      let itemY = y + 20;
+      formData.items.forEach(item => {
+        doc.text(item.description, x + 5, itemY);
+        doc.text(item.quantity.toString(), 140, itemY);
+        doc.text(`$${(item.quantity * item.price).toFixed(2)}`, 180, itemY, { align: 'right' });
+        doc.setDrawColor(240, 240, 240);
+        doc.line(x, itemY + 3, 190, itemY + 3);
+        itemY += 12;
+      });
+      return itemY + 10;
+    };
+
+    const renderSummary = (x, y) => {
+      const rightX = 180;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Subtotal:', 140, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`$${subtotal.toFixed(2)}`, rightX, y, { align: 'right' });
+
+      if (visible.gst) {
+        doc.text('GST (18%):', 140, y + 8);
+        doc.text(`$${calculateGST().toFixed(2)}`, rightX, y + 8, { align: 'right' });
+        y += 8;
+      }
+
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      setColor(themeColor, 'text');
+      doc.text('Total:', 140, y + 15);
+      doc.text(`$${total.toFixed(2)}`, rightX, y + 15, { align: 'right' });
+      return y + 30;
+    };
+
+    const renderFooter = (x, y) => {
+      if (!isPro) {
+        doc.setFontSize(40);
+        doc.setTextColor(240, 240, 240);
+        doc.text('BUSINESS HUB FREE', 105, 150, { align: 'center', angle: 45 });
+        doc.setFontSize(10);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Generated by Business Hub (Free Plan)', 105, 285, { align: 'center' });
+      }
+
+      if (userPlan === 'Premium') {
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        if (invoiceSettings.notes && visible.notes) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('Notes:', x, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(invoiceSettings.notes, x, y + 5);
+          y += 15;
+        }
+        if (invoiceSettings.terms && visible.terms) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('Terms:', x, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(invoiceSettings.terms, x, y + 5);
+          y += 15;
+        }
+        if (invoiceSettings.footerText && visible.footer) {
+          doc.setFont('helvetica', 'italic');
+          doc.text(invoiceSettings.footerText, 105, 285, { align: 'center' });
+        }
+      }
+      return y;
+    };
+
+    // Calculate layout dynamically based on sections order
+    const sections = userPlan === 'Premium' ? (invoiceSettings.sectionsOrder || []) : ['header', 'info', 'items', 'summary', 'footer'];
     
-    // Reset form
-    setFormData({
-      ...formData,
-      clientName: '',
-      items: [{ description: '', quantity: 1, price: 0 }]
-    });
+    let startX = 20;
+    let currentY = 20;
+    
+    try {
+      sections.forEach(section => {
+        if (section === 'header') {
+          const headerResult = renderHeader(currentY);
+          startX = headerResult.startX;
+          currentY = headerResult.nextY;
+        }
+        if (section === 'info') currentY = renderInfo(startX, currentY);
+        if (section === 'items') currentY = renderItems(startX, currentY);
+        if (section === 'summary') currentY = renderSummary(startX, currentY);
+        if (section === 'footer') currentY = renderFooter(startX, currentY);
+      });
+
+      doc.save(`invoice_${formData.invoiceNumber}.pdf`);
+      showToast('Invoice generated perfectly!', 'success');
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      showToast('Error generating PDF. Please check your settings.', 'error');
+    }
+    
+    setFormData({ ...formData, clientName: '', items: [{ description: '', quantity: 1, price: 0 }] });
   };
 
   const handleExpenseSubmit = (e) => {
@@ -172,6 +356,7 @@ export default function FinanceTool() {
       <div className="flex gap-2 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-fit">
         {[
           { id: 'invoice', label: 'Create Invoice', icon: FileText },
+          { id: 'customize', label: 'Customize', icon: Sparkles },
           { id: 'history', label: 'History', icon: History },
           { id: 'expenses', label: 'Expenses', icon: CreditCard },
           { id: 'summary', label: 'Analytics', icon: PieChartIcon },
@@ -194,6 +379,18 @@ export default function FinanceTool() {
       {activeTab === 'invoice' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="lg:col-span-2 space-y-6">
+            {userPlan === 'Free' && invoices.length >= 3 && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-500 rounded-xl text-white"><Lock size={20} /></div>
+                  <div>
+                    <h4 className="font-bold dark:text-white">Free Plan Limit Reached</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">You've generated 3/3 invoices. Upgrade to Pro for unlimited invoices.</p>
+                  </div>
+                </div>
+                <Button onClick={() => setIsUpgradeModalOpen(true)} size="sm">Upgrade Now</Button>
+              </div>
+            )}
             <Card>
               <h3 className="text-lg font-bold mb-6 dark:text-white">Business Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,6 +436,10 @@ export default function FinanceTool() {
             </Card>
           </div>
         </div>
+      )}
+
+      {activeTab === 'customize' && (
+        <InvoiceCustomization onUpgradeClick={() => setIsUpgradeModalOpen(true)} />
       )}
 
       {activeTab === 'history' && (
@@ -307,7 +508,7 @@ export default function FinanceTool() {
         </div>
       )}
 
-      {activeTab === 'summary' && (
+          {activeTab === 'summary' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card className="md:col-span-1">
             <h3 className="text-lg font-bold mb-8 dark:text-white">Financial Summary</h3>
@@ -326,6 +527,8 @@ export default function FinanceTool() {
           </Card>
         </div>
       )}
+
+      <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
     </div>
   );
 }
