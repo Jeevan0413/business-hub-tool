@@ -353,7 +353,7 @@ export default function FinanceTool() {
         </div>
       </div>
 
-      <div className="flex gap-2 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-fit">
+      <div className="flex gap-2 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-full overflow-x-auto hide-scrollbar md:w-fit">
         {[
           { id: 'invoice', label: 'Create Invoice', icon: FileText },
           { id: 'customize', label: 'Customize', icon: Sparkles },
