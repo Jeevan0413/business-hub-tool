@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  
+  /* Midnight Onyx Palette */
+  --color-primary-50: oklch(0.96 0.01 260);
+  --color-primary-100: oklch(0.92 0.03 260);
+  --color-primary-500: oklch(0.65 0.22 260); /* Electric Blue */
+  --color-primary-600: oklch(0.55 0.22 260);
+  --color-primary-700: oklch(0.45 0.22 260);
+
+  --color-accent-500: oklch(0.75 0.25 150); /* Neon Emerald */
+  --color-accent-600: oklch(0.65 0.25 150);
+  
+  --color-onyx-900: oklch(0.12 0.02 260); /* Deep Midnight */
+  --color-onyx-950: oklch(0.08 0.02 260); /* Pitch Black */
+  
+  --color-slate-900: oklch(0.25 0.03 260);
+  --color-slate-800: oklch(0.35 0.03 260);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-700 min-h-screen overflow-x-hidden font-sans;
+  }
+  
+  .dark body {
+    @apply bg-onyx-950 text-slate-100;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Premium Background Mesh */
+.mesh-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+  filter: blur(120px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.mesh-circle {
+  position: absolute;
+  border-radius: 50%;
+  animation: move 30s infinite ease-in-out alternate;
+}
+
+.dark .mesh-circle {
+  opacity: 0.3;
+}
+
+@keyframes move {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33% { transform: translate(20%, 15%) scale(1.4) rotate(120deg); }
+  66% { transform: translate(-15%, 25%) scale(0.9) rotate(240deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(360deg); }
+}
+
+/* Noise Overlay - Finer grain for Onyx */
+.noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Midnight Onyx Glass */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(25px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.02);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Bento Card - The Heart of Onyx */
+.bento-card {
+  @apply rounded-[2.5rem] p-8 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)];
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.dark .bento-card {
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.bento-card:hover {
+  @apply -translate-y-2;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.05);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.dark .bento-card:hover {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 40px 80px -20px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Neon Glow Utilities */
+.neon-glow-primary {
+  box-shadow: 0 0 20px oklch(0.65 0.22 260 / 0.15);
+}
+
+.dark .neon-glow-primary {
+  box-shadow: 0 0 30px oklch(0.65 0.22 260 / 0.2);
+}
+
+/* Premium Buttons */
+.btn-onyx {
+  @apply px-8 py-4 bg-primary-600 text-white rounded-2xl font-black transition-all shadow-2xl shadow-primary-500/20 relative overflow-hidden active:scale-95;
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.btn-onyx::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: 0.6s;
+}
+
+.btn-onyx:hover::before {
+  left: 100%;
+}
+
+.btn-onyx:hover {
+  @apply bg-primary-500 shadow-primary-500/40 -translate-y-0.5;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300/50 rounded-full border-[3px] border-transparent bg-clip-padding;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-white/10;
+}
+
+/* Animations */
+.animate-in {
+  animation: animate-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.table-container {
+  @apply overflow-x-auto rounded-[2rem] border border-slate-200 dark:border-white/5;
+}
